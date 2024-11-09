@@ -1,3 +1,3 @@
-module github.com/AlexanderMac/go-app-template
+module github.com/AlexanderMac/gofit
 
 go 1.23
