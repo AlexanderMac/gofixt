@@ -8,7 +8,7 @@ do
   goos=${platform_split[0]}
   goarch=${platform_split[1]}
   output_name=build/gofit
-	if [ $GOOS = "windows" ]; then
+	if [ $goos = "windows" ]; then
 		output_name+='.exe'
 	fi	
   env GOOS=$goos GOARCH=$goarch go build -o $output_name cmd/gofit/main.go

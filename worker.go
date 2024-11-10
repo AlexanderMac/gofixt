@@ -1,120 +1,155 @@
 package gofit
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
-	"text/tabwriter"
+	"sync"
+	"time"
 
 	"github.com/h2non/filetype"
+	"golang.org/x/sync/errgroup"
 )
 
 type _FileInfo struct {
 	filePath    string
 	filePathCut string
 	mime        string
-	origExt     string
+	oExt        string
 	realExt     string
 	fixed       bool
+	err         string
 }
 
-func Scan(dir string) error {
-	fis, err := walkDir(dir)
-	if err != nil {
-		return err
-	}
-
-	w := tabwriter.NewWriter(os.Stdout, 1, 1, 2, ' ', 0)
-	fmt.Fprintln(w, "| File\t| Mime\t| Orig ext.\t| Real ext.\t| ")
-	fmt.Fprintln(w, "| ----\t| ----\t| ---------\t| ---------\t| ")
-	for _, fi := range fis {
-		fmt.Fprintf(w, "| %s\t| %s\t| %s\t| %s\t|\n", fi.filePathCut, fi.mime, fi.origExt, fi.realExt)
-	}
-	w.Flush()
-
-	return nil
+func Scan(dirPath string, silent bool) error {
+	return worker(dirPath, silent, false)
 }
 
-func Fix(dirPath string) error {
-	fis, err := walkDir(dirPath)
-	if err != nil {
-		return err
+func Fix(dirPath string, silent bool) error {
+	return worker(dirPath, silent, true)
+}
+
+func worker(dirPath string, silent bool, needFix bool) error {
+	var mutex sync.Mutex
+	ctx := context.TODO()
+	errGrp, _ := errgroup.WithContext(ctx)
+	start := time.Now()
+	tableWriter := NewTableWriter()
+	if !silent {
+		tableWriter.AddHeader()
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 1, 1, 2, ' ', 0)
-	fmt.Fprintln(w, "| File\t| Mime\t| Orig ext.\t| Real ext.\t| Fixed\t| ")
-	fmt.Fprintln(w, "| ----\t| ----\t| ---------\t| ---------\t| -----\t| ")
-	for _, fi := range fis {
-		err = fixFileExt(&fi)
+	var procFileCnt int
+	var fixedFileCnt int
+	err := walkDir(dirPath, func(filePath string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(w, "| %s\t| %s\t| %s\t| %s\t| %s\t|\n", fi.filePathCut, fi.mime, fi.origExt, fi.realExt, If(fi.fixed, "yes", ""))
-	}
-	w.Flush()
-
-	return nil
-}
-
-func walkDir(dirPath string) ([]_FileInfo, error) {
-	var result []_FileInfo
-	err := filepath.WalkDir(dirPath, func(f string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
+		if dirEntry.IsDir() || filePath == "" {
+			return nil
 		}
-		if !d.IsDir() {
-			fi, err := getFileInfo(dirPath, f)
+		errGrp.Go(func() error {
+			fileInfo, err := getFileInfo(dirPath, filePath)
 			if err != nil {
 				return err
 			}
-			result = append(result, fi)
-		}
+			if fileInfo.err == "" && needFix {
+				err := fixFileExt(&fileInfo)
+				if err != nil {
+					return err
+				}
+				if fileInfo.fixed {
+					fixedFileCnt++
+				}
+			}
+			if !silent {
+				mutex.Lock()
+				defer mutex.Unlock()
+				tableWriter.AddRow(&fileInfo)
+			}
+			procFileCnt++
+			return nil
+		})
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	err = errGrp.Wait()
+	if err != nil {
+		return err
+	}
 
-	return result, err
+	if !silent {
+		err = tableWriter.Finish()
+		if err != nil {
+			return err
+		}
+	}
+
+	duration := time.Since(start)
+	fmt.Printf("\n%d file(s) processed and %d file(s) fixed in %v\n", procFileCnt, fixedFileCnt, duration)
+	return nil
+}
+
+func walkDir(dirPath string, fileHandler fs.WalkDirFunc) error {
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		return fmt.Errorf("%s doesn't exist", dirPath)
+	}
+
+	return filepath.WalkDir(dirPath, fileHandler)
 }
 
 func getFileInfo(dirPath string, filePath string) (_FileInfo, error) {
-	var result _FileInfo
+	result := _FileInfo{
+		filePath:    filePath,
+		filePathCut: strings.Replace(filePath, dirPath, "<dir>/", 1),
+		mime:        "unknown",
+		oExt:        filepath.Ext(filePath),
+	}
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		return result, err
+		return _FileInfo{}, err
 	}
 	defer file.Close()
 
-	head := make([]byte, 1024)
+	head := make([]byte, 512)
 	_, err = file.Read(head)
 	if err != nil {
-		return result, err
+		if errors.Is(err, io.EOF) {
+			result.err = "File is empty"
+			return result, nil
+		}
+		return _FileInfo{}, err
 	}
 
-	ft, err := filetype.Get(head)
+	fileType, err := filetype.Get(head)
 	if err != nil {
-		return result, err
+		return _FileInfo{}, err
 	}
 
-	result.filePath = filePath
-	result.filePathCut = strings.Replace(filePath, dirPath, "<dir>/", 1)
-	result.mime = ft.MIME.Value
-	result.origExt = filepath.Ext(filePath)
-	result.realExt = "." + ft.Extension
+	if fileType.MIME.Value != "" {
+		result.mime = fileType.MIME.Value
+		result.realExt = "." + fileType.Extension
+	}
 
 	return result, nil
 }
 
-func fixFileExt(fi *_FileInfo) error {
-	if fi.mime != "" && fi.origExt != fi.realExt {
-		oldPath := fi.filePath
-		newPath := strings.TrimSuffix(fi.filePath, fi.origExt) + fi.realExt
+func fixFileExt(fileInfo *_FileInfo) error {
+	if fileInfo.mime != "" && fileInfo.oExt != fileInfo.realExt {
+		oldPath := fileInfo.filePath
+		newPath := strings.TrimSuffix(fileInfo.filePath, fileInfo.oExt) + fileInfo.realExt
 		if err := os.Rename(oldPath, newPath); err != nil {
 			return err
 		}
-		fi.fixed = true
+		fileInfo.fixed = true
 	}
-
 	return nil
 }

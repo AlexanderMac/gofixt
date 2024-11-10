@@ -8,7 +8,7 @@ import (
 	"github.com/AlexanderMac/gofit"
 )
 
-const VERSION = "0.0.1"
+const VERSION = "0.1.0"
 
 func main() {
 	log.SetFlags(0)
@@ -16,10 +16,10 @@ func main() {
 	flags := flag.NewFlagSet("gofit", flag.ExitOnError)
 	flags.Usage = usage
 	dir := flags.String("dir", "", "Scanning directory")
+	silent := flags.Bool("silent", false, "Don't print report")
 
 	if err := flags.Parse(os.Args[1:]); err != nil {
 		log.Fatalf("Unable to parse args: %v", err)
-		return
 	}
 
 	args := flags.Args()
@@ -38,16 +38,14 @@ func main() {
 		os.Exit(0)
 	case "scan":
 		validateFlags(*dir)
-		if err := gofit.Scan(*dir); err != nil {
+		if err := gofit.Scan(*dir, *silent); err != nil {
 			log.Fatal(err)
 		}
-		log.Println("Done!")
 	case "fix":
 		validateFlags(*dir)
-		if err := gofit.Fix(*dir); err != nil {
+		if err := gofit.Fix(*dir, *silent); err != nil {
 			log.Fatal(err)
 		}
-		log.Println("Done!")
 	default:
 		flags.Usage()
 		os.Exit(0)
@@ -58,7 +56,8 @@ func usage() {
 	const usagePrefix = `Usage: gofit [flags] command
 
 Flags:
-  --dir Scanning directory (absolute or relative path)
+  --dir    Scanning directory (absolute or relative path)
+  --silent Don't print report
 
 Commands:
   scan     Scans files in the provided directory recursively. Prints files info in a table format
