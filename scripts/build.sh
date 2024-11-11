@@ -1,15 +1,18 @@
 #!/bin/bash
 
-platforms=("windows/amd64" "linux/amd64")
+version=0.1.0
+platforms=("linux/amd64" "darwin/amd64" "windows/amd64")
+
+rm build/*
 
 for platform in "${platforms[@]}"
 do
-  platform_split=(${platform//\// })
-  goos=${platform_split[0]}
-  goarch=${platform_split[1]}
-  output_name=build/gofit
+  platform_parts=(${platform//\// })
+  goos=${platform_parts[0]}
+  goarch=${platform_parts[1]}
+  output_name=build/gofit-v$version.$goos-$goarch
 	if [ $goos = "windows" ]; then
 		output_name+='.exe'
-	fi	
+	fi
   env GOOS=$goos GOARCH=$goarch go build -o $output_name cmd/gofit/main.go
 done
