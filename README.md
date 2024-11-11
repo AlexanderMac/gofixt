@@ -12,31 +12,29 @@
 # Run the app in scan mode
 gofit --dir=./tmp scan
 # Output
-| File                 | Mime             | Orig ext. | Real ext. | Fixed | Error         |
-| ----                 | ----             | --------- | --------- | ----- | -----         |
-| tmp/report           | unknown          |           |           |       |               |
-| tmp/empty.pdf        | unknown          | .pdf      |           |       | File is empty |
-| tmp/pdf-doc.txt      | application/pdf  | .txt      | .pdf      |       |               |
-| tmp/png-picture2.png | image/png        | .png      | .png      |       |               |
-| tmp/archive.tar.gz   | application/gzip | .gz       | .gz       |       |               |
-| tmp/chat             | unknown          |           |           |       |               |
-| tmp/png-picture1.jpg | image/png        | .jpg      | .png      |       |               |
-
-7 file(s) processed in 495.507µs
+| File                   | Mime             | Orig ext. | Real ext. | Notes         |
+| ----                   | ----             | --------- | --------- | -----         |
+| <dir>/png-picture2.png | image/png        | .png      | .png      |               |
+| <dir>/archive.tar.gz   | application/gzip | .gz       | .gz       |               |
+| <dir>/chat             | unknown          |           |           |               |
+| <dir>/empty.pdf        | unknown          | .pdf      |           | File is empty |
+| <dir>/pdf-doc.pdf      | application/pdf  | .pdf      | .pdf      |               |
+| <dir>/pdf-doc.txt      | application/pdf  | .txt      | .pdf      |               |
+| <dir>/png-picture1.jpg | image/png        | .jpg      | .png      |               |
+7 file(s) processed and 0 file(s) fixed in 211.589µs
 
 # Run the app in fix mode
 gofit --dir=./tmp fix
-| File                 | Mime             | Orig ext. | Real ext. | Fixed | Error         |
-| ----                 | ----             | --------- | --------- | ----- | -----         |
-| tmp/report           | unknown          |           |           |       |               |
-| tmp/empty.pdf        | unknown          | .pdf      |           |       | File is empty |
-| tmp/png-picture2.png | image/png        | .png      | .png      |       |               |
-| tmp/chat             | unknown          |           |           |       |               |
-| tmp/archive.tar.gz   | application/gzip | .gz       | .gz       |       |               |
-| tmp/png-picture1.jpg | image/png        | .jpg      | .png      | Yes   |               |
-| tmp/pdf-doc.txt      | application/pdf  | .txt      | .pdf      | Yes   |               |
-
-7 file(s) processed in 582.46µs
+| File                   | Mime             | Orig ext. | Real ext. | Notes                                     |
+| ----                   | ----             | --------- | --------- | -----                                     |
+| <dir>/png-picture2.png | image/png        | .png      | .png      |                                           |
+| <dir>/archive.tar.gz   | application/gzip | .gz       | .gz       |                                           |
+| <dir>/chat             | unknown          |           |           |                                           |
+| <dir>/empty.pdf        | unknown          | .pdf      |           | File is empty                             |
+| <dir>/pdf-doc.pdf      | application/pdf  | .pdf      | .pdf      |                                           |
+| <dir>/pdf-doc.txt      | application/pdf  | .txt      | .pdf      | File with the same name is already exists |
+| <dir>/png-picture1.jpg | image/png        | .jpg      | .png      | Fixed                                     |
+7 file(s) processed and 1 file(s) fixed in 246.946µs
 ```
 
 # Contents

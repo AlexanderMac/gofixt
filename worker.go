@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -80,6 +81,7 @@ func worker(dirPath string, silent bool, needFix bool) error {
 	if err != nil {
 		return err
 	}
+
 	err = errGrp.Wait()
 	if err != nil {
 		return err
@@ -98,17 +100,21 @@ func worker(dirPath string, silent bool, needFix bool) error {
 }
 
 func walkDir(dirPath string, fileHandler fs.WalkDirFunc) error {
-	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
-		return fmt.Errorf("%s doesn't exist", dirPath)
+	if _, err := os.Stat(dirPath); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("%s doesn't exist", dirPath)
+		}
+		return err
 	}
 
 	return filepath.WalkDir(dirPath, fileHandler)
 }
 
 func getFileInfo(dirPath string, filePath string) (_FileInfo, error) {
+	rePathCut := regexp.MustCompile("^" + dirPath)
 	result := _FileInfo{
-		filePath:    filePath,
-		filePathCut: strings.Replace(filePath, dirPath, "<dir>/", 1),
+		filePath: filePath,
+		filePathCut: string(rePathCut.ReplaceAllString(filePath, "<dir>")),
 		mime:        "unknown",
 		oExt:        filepath.Ext(filePath),
 	}
@@ -126,6 +132,10 @@ func getFileInfo(dirPath string, filePath string) (_FileInfo, error) {
 			result.err = "File is empty"
 			return result, nil
 		}
+		/* TODO: process more expected errors:
+		- Access is denied.
+		- The process cannot access the file because it is being used by another process.
+		*/
 		return _FileInfo{}, err
 	}
 
@@ -146,7 +156,15 @@ func fixFileExt(fileInfo *_FileInfo) error {
 	if fileInfo.mime != "" && fileInfo.oExt != fileInfo.realExt {
 		oldPath := fileInfo.filePath
 		newPath := strings.TrimSuffix(fileInfo.filePath, fileInfo.oExt) + fileInfo.realExt
-		if err := os.Rename(oldPath, newPath); err != nil {
+		fileStat, err := os.Stat(newPath)
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		if fileStat != nil {
+			fileInfo.err = "File with the same name is already exists"
+			return nil
+		}
+		if err = os.Rename(oldPath, newPath); err != nil {
 			return err
 		}
 		fileInfo.fixed = true

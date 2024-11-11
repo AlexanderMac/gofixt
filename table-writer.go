@@ -17,12 +17,18 @@ func NewTableWriter() *TableWriter {
 }
 
 func (tw *TableWriter) AddHeader() {
-	fmt.Fprintln(tw.writer, "| File\t| Mime\t| Orig ext.\t| Real ext.\t| Fixed\t| Error\t|")
-	fmt.Fprintln(tw.writer, "| ----\t| ----\t| ---------\t| ---------\t| -----\t| -----\t|")
+	fmt.Fprintln(tw.writer, "| File\t| Mime\t| Orig ext.\t| Real ext.\t| Notes\t|")
+	fmt.Fprintln(tw.writer, "| ----\t| ----\t| ---------\t| ---------\t| -----\t|")
 }
 
 func (tw *TableWriter) AddRow(fi *_FileInfo) {
-	fmt.Fprintf(tw.writer, "| %s\t| %s\t| %s\t| %s\t| %s\t| %s\t|\n", fi.filePathCut, fi.mime, fi.oExt, fi.realExt, If(fi.fixed, "Yes", ""), fi.err)
+	var notes string
+	if fi.err != "" {
+		notes = fi.err
+	} else if fi.fixed {
+		notes = "Fixed"
+	}
+	fmt.Fprintf(tw.writer, "| %s\t| %s\t| %s\t| %s\t| %s\t|\n", fi.filePathCut, fi.mime, fi.oExt, fi.realExt, notes)
 }
 
 func (tw *TableWriter) Finish() error {
