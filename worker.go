@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -36,6 +35,17 @@ func Fix(dirPath string, silent bool) error {
 }
 
 func worker(dirPath string, silent bool, needFix bool) error {
+	dirPathAbs, err := filepath.Abs(dirPath)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(dirPathAbs); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("%s doesn't exist", dirPathAbs)
+		}
+		return err
+	}
+
 	var mutex sync.Mutex
 	ctx := context.TODO()
 	errGrp, _ := errgroup.WithContext(ctx)
@@ -47,7 +57,7 @@ func worker(dirPath string, silent bool, needFix bool) error {
 
 	var procFileCnt int
 	var fixedFileCnt int
-	err := walkDir(dirPath, func(filePath string, dirEntry fs.DirEntry, err error) error {
+	err = filepath.WalkDir(dirPathAbs, func(filePath string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -55,7 +65,7 @@ func worker(dirPath string, silent bool, needFix bool) error {
 			return nil
 		}
 		errGrp.Go(func() error {
-			fileInfo, err := getFileInfo(dirPath, filePath)
+			fileInfo, err := getFileInfo(dirPathAbs, filePath)
 			if err != nil {
 				return err
 			}
@@ -99,22 +109,10 @@ func worker(dirPath string, silent bool, needFix bool) error {
 	return nil
 }
 
-func walkDir(dirPath string, fileHandler fs.WalkDirFunc) error {
-	if _, err := os.Stat(dirPath); err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("%s doesn't exist", dirPath)
-		}
-		return err
-	}
-
-	return filepath.WalkDir(dirPath, fileHandler)
-}
-
 func getFileInfo(dirPath string, filePath string) (_FileInfo, error) {
-	rePathCut := regexp.MustCompile("^" + dirPath)
 	result := _FileInfo{
-		filePath: filePath,
-		filePathCut: string(rePathCut.ReplaceAllString(filePath, "<dir>")),
+		filePath:    filePath,
+		filePathCut: strings.Replace(filePath, dirPath, "<dir>", 1),
 		mime:        "unknown",
 		oExt:        filepath.Ext(filePath),
 	}
