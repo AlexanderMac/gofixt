@@ -1,6 +1,6 @@
 #!/bin/bash
 
-version=0.1.0
+version=0.1.1
 platforms=("linux/amd64" "darwin/amd64" "windows/amd64")
 
 rm build/*
