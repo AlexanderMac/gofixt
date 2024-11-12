@@ -10,9 +10,9 @@ do
   platform_parts=(${platform//\// })
   goos=${platform_parts[0]}
   goarch=${platform_parts[1]}
-  output_name=build/gofit-v$version.$goos-$goarch
+  output_name=build/gofixt-v$version.$goos-$goarch
 	if [ $goos = "windows" ]; then
 		output_name+='.exe'
 	fi
-  env GOOS=$goos GOARCH=$goarch go build -o $output_name cmd/gofit/main.go
+  env GOOS=$goos GOARCH=$goarch go build -o $output_name cmd/gofixt/main.go
 done

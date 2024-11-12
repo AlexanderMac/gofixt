@@ -1,16 +1,15 @@
 <div align="center">
-  <h1>Go-Fit</h1>
+  <h1>Go-Fix-Ext</h1>
   <p>Fix binary file extensions using magic numbers header signature</p>
   <p>
-    <a href="https://github.com/alexandermac/gofit/actions/workflows/ci.yml?query=branch%3Amaster"><img src="https://github.com/alexandermac/gofit/actions/workflows/ci.yml/badge.svg" alt="Build Status"></a>
-    <a href="LICENSE"><img src="https://img.shields.io/github/license/alexandermac/gofit.svg" alt="License"></a>
+    <a href="https://github.com/alexandermac/gofixt/actions/workflows/ci.yml?query=branch%3Amaster"><img src="https://github.com/alexandermac/gofixt/actions/workflows/ci.yml/badge.svg" alt="Build Status"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/github/license/alexandermac/gofixt.svg" alt="License"></a>
   </p>
 </div>
 
-
 ```sh
 # Run the app in scan mode
-gofit --dir=./tmp scan
+gofixt --dir=./tmp scan
 # Output
 | File                   | Mime             | Orig ext. | Real ext. | Notes         |
 | ----                   | ----             | --------- | --------- | -----         |
@@ -24,7 +23,7 @@ gofit --dir=./tmp scan
 7 file(s) processed and 0 file(s) fixed in 211.589µs
 
 # Run the app in fix mode
-gofit --dir=./tmp fix
+gofixt --dir=./tmp fix
 | File                   | Mime             | Orig ext. | Real ext. | Notes                                     |
 | ----                   | ----             | --------- | --------- | -----                                     |
 | <dir>/png-picture2.png | image/png        | .png      | .png      |                                           |
@@ -45,14 +44,14 @@ gofit --dir=./tmp fix
 
 # Install
 ```sh
-# Install the gofit binary in your $GOPATH/bin directory
+# Install the gofixt binary in your $GOPATH/bin directory
 go install github.com/alexandermac/gom/cmd/gom
 ```
 
 # Usage
 ## CLI
 ```
-Usage: gofit [flags] command
+Usage: gofixt [flags] command
 
 Flags:
   --dir    Scanning directory (absolute or relative path)
@@ -65,8 +64,8 @@ Commands:
   version  Prints app version
 
 Examples:
-  gofit --dir=~/images scan
-  gofit --dir=~/files --silent fix
+  gofixt --dir=~/images scan
+  gofixt --dir=~/files --silent fix
 ```
 
 # License

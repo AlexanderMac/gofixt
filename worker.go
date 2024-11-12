@@ -1,4 +1,4 @@
-package gofit
+package gofixt
 
 import (
 	"context"

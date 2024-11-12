@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/AlexanderMac/gofit"
+	"github.com/AlexanderMac/gofixt"
 )
 
 const VERSION = "0.1.0"
@@ -13,7 +13,7 @@ const VERSION = "0.1.0"
 func main() {
 	log.SetFlags(0)
 
-	flags := flag.NewFlagSet("gofit", flag.ExitOnError)
+	flags := flag.NewFlagSet("gofixt", flag.ExitOnError)
 	flags.Usage = usage
 	dir := flags.String("dir", "", "Scanning directory")
 	silent := flags.Bool("silent", false, "Don't print report")
@@ -38,12 +38,12 @@ func main() {
 		os.Exit(0)
 	case "scan":
 		validateFlags(*dir)
-		if err := gofit.Scan(*dir, *silent); err != nil {
+		if err := gofixt.Scan(*dir, *silent); err != nil {
 			log.Fatal(err)
 		}
 	case "fix":
 		validateFlags(*dir)
-		if err := gofit.Fix(*dir, *silent); err != nil {
+		if err := gofixt.Fix(*dir, *silent); err != nil {
 			log.Fatal(err)
 		}
 	default:
@@ -53,7 +53,7 @@ func main() {
 }
 
 func usage() {
-	const usagePrefix = `Usage: gofit [flags] command
+	const usagePrefix = `Usage: gofixt [flags] command
 
 Flags:
   --dir    Scanning directory (absolute or relative path)
@@ -66,8 +66,8 @@ Commands:
   version  Prints app version
 
 Examples:
-  gofit --dir=~/images scan
-  gofit --dir=~/files fix
+  gofixt --dir=~/images scan
+  gofixt --dir=~/files fix
 `
 
 	log.Print(usagePrefix)

@@ -1,4 +1,4 @@
-module github.com/AlexanderMac/gofit
+module github.com/AlexanderMac/gofixt
 
 go 1.23
 
