@@ -22,6 +22,7 @@ type _FileInfo struct {
 	mime        string
 	oExt        string
 	realExt     string
+	fixRequired bool
 	fixed       bool
 	err         string
 }
@@ -69,13 +70,16 @@ func worker(dirPath string, silent bool, needFix bool) error {
 			if err != nil {
 				return err
 			}
-			if fileInfo.err == "" && needFix {
-				err := fixFileExt(&fileInfo)
-				if err != nil {
-					return err
-				}
-				if fileInfo.fixed {
-					fixedFileCnt++
+			if fileInfo.err == "" {
+				fileInfo.fixRequired = fileInfo.mime != "" && fileInfo.oExt != fileInfo.realExt
+				if needFix {
+					err := fixFileExt(&fileInfo)
+					if err != nil {
+						return err
+					}
+					if fileInfo.fixed {
+						fixedFileCnt++
+					}
 				}
 			}
 			if !silent {
@@ -151,7 +155,7 @@ func getFileInfo(dirPath string, filePath string) (_FileInfo, error) {
 }
 
 func fixFileExt(fileInfo *_FileInfo) error {
-	if fileInfo.mime != "" && fileInfo.oExt != fileInfo.realExt {
+	if fileInfo.fixRequired {
 		oldPath := fileInfo.filePath
 		newPath := strings.TrimSuffix(fileInfo.filePath, fileInfo.oExt) + fileInfo.realExt
 		fileStat, err := os.Stat(newPath)

@@ -27,6 +27,8 @@ func (tw *TableWriter) AddRow(fi *_FileInfo) {
 		notes = fi.err
 	} else if fi.fixed {
 		notes = "Fixed"
+	} else if fi.fixRequired {
+		notes = "Fix required"
 	}
 	fmt.Fprintf(tw.writer, "| %s\t| %s\t| %s\t| %s\t| %s\t|\n", fi.filePathCut, fi.mime, fi.oExt, fi.realExt, notes)
 }

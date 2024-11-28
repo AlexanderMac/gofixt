@@ -18,8 +18,8 @@ gofixt --dir=./tmp scan
 | <dir>/chat             | unknown          |           |           |               |
 | <dir>/empty.pdf        | unknown          | .pdf      |           | File is empty |
 | <dir>/pdf-doc.pdf      | application/pdf  | .pdf      | .pdf      |               |
-| <dir>/pdf-doc.txt      | application/pdf  | .txt      | .pdf      |               |
-| <dir>/png-picture1.jpg | image/png        | .jpg      | .png      |               |
+| <dir>/pdf-doc.txt      | application/pdf  | .txt      | .pdf      | Fix required  |
+| <dir>/png-picture1.jpg | image/png        | .jpg      | .png      | Fix required  |
 7 file(s) processed and 0 file(s) fixed in 211.589µs
 
 # Run the app in fix mode
