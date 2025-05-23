@@ -1,7 +1,8 @@
 # Changelog
 
-## v0.2.0 (Unreleased)
-- Added notes _Fix required_ for the scan mode.
+## v0.2.0 (May. 23, 2025)
+- Set limit for files processing in parallel.
+- Improved report formatting.
 
 ## v0.1.1 (Nov. 12, 2024)
 - Project renamed from gofix to gofixt.

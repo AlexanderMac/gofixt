@@ -10,30 +10,42 @@
 ```sh
 # Run the app in scan mode
 gofixt --dir=./tmp scan
-# Output
+
 | File                   | Mime             | Orig ext. | Real ext. | Notes         |
-| ----                   | ----             | --------- | --------- | -----         |
-| <dir>/png-picture2.png | image/png        | .png      | .png      |               |
-| <dir>/archive.tar.gz   | application/gzip | .gz       | .gz       |               |
-| <dir>/chat             | unknown          |           |           |               |
-| <dir>/empty.pdf        | unknown          | .pdf      |           | File is empty |
-| <dir>/pdf-doc.pdf      | application/pdf  | .pdf      | .pdf      |               |
-| <dir>/pdf-doc.txt      | application/pdf  | .txt      | .pdf      | Fix required  |
-| <dir>/png-picture1.jpg | image/png        | .jpg      | .png      | Fix required  |
-7 file(s) processed and 0 file(s) fixed in 211.589µs
+| --------------------------------------------------------------------------------- |
+| /png-picture2.png      | image/png        | .png      | .png      |               |
+| /archive.tar.gz        | application/gzip | .gz       | .gz       |               |
+| /chat                  | unknown          |           |           |               |
+| /empty.pdf             | unknown          | .pdf      |           | File is empty |
+| /pdf-doc.pdf           | application/pdf  | .pdf      | .pdf      |               |
+| /pdf-doc.txt           | application/pdf  | .txt      | .pdf      | Fix required  |
+| /png-picture1.jpg      | image/png        | .jpg      | .png      | Fix required  |
+
+Process has been completed in 300.514µs.
+- 7 file(s) processed
+- 0 file(s) ignored
+- 2 file(s) require fix
+- 0 file(s) fixed
+- 1 error(s)
 
 # Run the app in fix mode
 gofixt --dir=./tmp fix
-| File                   | Mime             | Orig ext. | Real ext. | Notes                                     |
-| ----                   | ----             | --------- | --------- | -----                                     |
-| <dir>/png-picture2.png | image/png        | .png      | .png      |                                           |
-| <dir>/archive.tar.gz   | application/gzip | .gz       | .gz       |                                           |
-| <dir>/chat             | unknown          |           |           |                                           |
-| <dir>/empty.pdf        | unknown          | .pdf      |           | File is empty                             |
-| <dir>/pdf-doc.pdf      | application/pdf  | .pdf      | .pdf      |                                           |
-| <dir>/pdf-doc.txt      | application/pdf  | .txt      | .pdf      | File with the same name is already exists |
-| <dir>/png-picture1.jpg | image/png        | .jpg      | .png      | Fixed                                     |
-7 file(s) processed and 1 file(s) fixed in 246.946µs
+| File                   | Mime             | Orig ext. | Real ext. | Notes                                  |
+| ---------------------------------------------------------------------------------------------------------- |
+| /png-picture2.png      | image/png        | .png      | .png      |                                        |
+| /archive.tar.gz        | application/gzip | .gz       | .gz       |                                        |
+| /chat                  | unknown          |           |           |                                        |
+| /empty.pdf             | unknown          | .pdf      |           | File is empty                          |
+| /pdf-doc.pdf           | application/pdf  | .pdf      | .pdf      |                                        |
+| /pdf-doc.txt           | application/pdf  | .txt      | .pdf      | File with the same name already exists |
+| /png-picture1.jpg      | image/png        | .jpg      | .png      | Fixed                                  |
+
+Process has been completed in 250.123µs.
+- 7 file(s) processed
+- 0 file(s) ignored
+- 0 file(s) require fix
+- 1 file(s) fixed
+- 2 error(s)
 ```
 
 # Contents
@@ -45,7 +57,7 @@ gofixt --dir=./tmp fix
 # Install
 ```sh
 # Install the gofixt binary in your $GOPATH/bin directory
-go install github.com/alexandermac/gom/cmd/gom
+go install github.com/alexandermac/gofixt/cmd/gofixt
 ```
 
 # Usage
@@ -55,7 +67,8 @@ Usage: gofixt [flags] command
 
 Flags:
   --dir    Scanning directory (absolute or relative path)
-  --silent Don't print report
+  --exts   Comma separated list of file extensions, files with other extensions will be ignored, default: empty
+  --print  Print mode: all,important,report,none, default: important
 
 Commands:
   scan     Scans files in the provided directory recursively. Prints files info in a table format
@@ -64,7 +77,7 @@ Commands:
   version  Prints app version
 
 Examples:
-  gofixt --dir=~/images scan
+  gofixt --dir=~/images scan --exts=jpeg,png,webp
   gofixt --dir=~/files --silent fix
 ```
 
