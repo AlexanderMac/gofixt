@@ -10,10 +10,13 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
-build/
+bin/
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
 # Temp
 tmp
+
+# Taskfile
+Taskfile.yaml

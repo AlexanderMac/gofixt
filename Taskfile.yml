@@ -1,0 +1,45 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default:
+    - task: run
+
+  run:
+    go run cmd/gofixt.go {{.CLI_ARGS}}
+
+  build-linux-amd64:
+    - task: _build
+      vars:
+        GOOS: linux
+        GOARCH: amd64
+
+  build-darwin-amd64:
+    - task: _build
+      vars:
+        GOOS: darwin
+        GOARCH: amd64
+
+  build-windows-amd64:
+    - task: _build
+      vars:
+        GOOS: windows
+        GOARCH: amd64
+        FILE_EXT: .exe
+
+  build-all:
+    - task: build-linux-amd64
+    - task: build-darwin-amd64
+    - task: build-windows-amd64
+
+  _build:
+    internal: true
+    env:
+      GOOS: '{{.GOOS}}'
+      GOARCH: '{{.GOARCH}}'
+    vars:
+      FILE_NAME: 'gofixt_{{.GOOS}}-{{.GOARCH}}{{.FILE_EXT}}'
+      BUILD_FILE_PATH: './bin/{{.FILE_NAME}}'
+    cmds:
+      - go build -o "{{.BUILD_FILE_PATH}}" cmd/*.go
