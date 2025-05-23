@@ -9,6 +9,10 @@ tasks:
   run:
     go run cmd/gofixt.go {{.CLI_ARGS}}
 
+  lint:
+    cmds:
+      - golangci-lint run
+
   build-linux-amd64:
     - task: _build
       vars:

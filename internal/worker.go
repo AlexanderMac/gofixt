@@ -136,7 +136,11 @@ func getFileInfo(filePath string) (_FileInfo, error) {
 	if err != nil {
 		return _FileInfo{}, err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
 	head := make([]byte, 261)
 	_, err = file.Read(head)
