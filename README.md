@@ -10,7 +10,8 @@
 ```sh
 # Run the app in scan mode
 gofixt --dir=./tmp scan
-
+```
+```
 | File                   | Mime             | Orig ext. | Real ext. | Notes         |
 | --------------------------------------------------------------------------------- |
 | /png-picture2.png      | image/png        | .png      | .png      |               |
@@ -27,25 +28,29 @@ Process has been completed in 300.514µs.
 - 2 file(s) require fix
 - 0 file(s) fixed
 - 1 error(s)
+```
 
+```sh
 # Run the app in fix mode
 gofixt --dir=./tmp fix
-| File                   | Mime             | Orig ext. | Real ext. | Notes                                  |
-| ---------------------------------------------------------------------------------------------------------- |
-| /png-picture2.png      | image/png        | .png      | .png      |                                        |
-| /archive.tar.gz        | application/gzip | .gz       | .gz       |                                        |
-| /chat                  | unknown          |           |           |                                        |
-| /empty.pdf             | unknown          | .pdf      |           | File is empty                          |
-| /pdf-doc.pdf           | application/pdf  | .pdf      | .pdf      |                                        |
-| /pdf-doc.txt           | application/pdf  | .txt      | .pdf      | File with the same name already exists |
-| /png-picture1.jpg      | image/png        | .jpg      | .png      | Fixed                                  |
-
-Process has been completed in 250.123µs.
-- 7 file(s) processed
-- 0 file(s) ignored
-- 0 file(s) require fix
-- 1 file(s) fixed
-- 2 error(s)
+```
+```
+ | File                   | Mime             | Orig ext. | Real ext. | Notes                                  |
+ | ---------------------------------------------------------------------------------------------------------- |
+ | /png-picture2.png      | image/png        | .png      | .png      |                                        |
+ | /archive.tar.gz        | application/gzip | .gz       | .gz       |                                        |
+ | /chat                  | unknown          |           |           |                                        |
+ | /empty.pdf             | unknown          | .pdf      |           | File is empty                          |
+ | /pdf-doc.pdf           | application/pdf  | .pdf      | .pdf      |                                        |
+ | /pdf-doc.txt           | application/pdf  | .txt      | .pdf      | File with the same name already exists |
+ | /png-picture1.jpg      | image/png        | .jpg      | .png      | Fixed                                  |
+ 
+ Process has been completed in 250.123µs.
+ - 7 file(s) processed
+ - 0 file(s) ignored
+ - 0 file(s) require fix
+ - 1 file(s) fixed
+ - 2 error(s)
 ```
 
 # Contents
