@@ -1,41 +1,64 @@
 package internal
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/h2non/filetype"
 	"golang.org/x/sync/errgroup"
 )
 
+type WorkMode string
+type PrintMode string
+type FileStatus int
+
+const (
+	WM_SCAN WorkMode = "scan"
+	WM_FIX  WorkMode = "fix"
+
+	PM_NONE      PrintMode = "none"
+	PM_ALL       PrintMode = "all"
+	PM_IMPORTANT PrintMode = "important"
+	PM_REPORT    PrintMode = "report"
+
+	FS_NONE         FileStatus = iota
+	FS_FIX_REQUIRED FileStatus = iota
+	FS_IGNORED      FileStatus = iota
+	FS_FIXED        FileStatus = iota
+	FS_ERROR        FileStatus = iota
+
+	FILE_PROCESSING_LIMIT = 100
+)
+
 type _FileInfo struct {
-	filePath    string
-	filePathCut string
-	mime        string
-	oExt        string
-	realExt     string
-	fixRequired bool
-	fixed       bool
-	err         string
+	filePath     string
+	fileTrimPath string
+	mime         string
+	origExt      string
+	realExt      string
+	status       FileStatus
+	notes        string
 }
 
-func Scan(dirPath string, silent bool) error {
-	return worker(dirPath, silent, false)
+func Scan(dirPath string, exts string, printMode PrintMode) error {
+	return worker(dirPath, exts, WM_SCAN, printMode)
 }
 
-func Fix(dirPath string, silent bool) error {
-	return worker(dirPath, silent, true)
+func Fix(dirPath string, exts string, printMode PrintMode) error {
+	return worker(dirPath, exts, WM_FIX, printMode)
 }
 
-func worker(dirPath string, silent bool, needFix bool) error {
+func worker(dirPath string, exts string, workMode WorkMode, printMode PrintMode) error {
+	tb := NewLogger(printMode)
+	tb.PrintIntro(dirPath, exts, workMode)
+	tb.PrintTableHeader()
+
 	dirPathAbs, err := filepath.Abs(dirPath)
 	if err != nil {
 		return err
@@ -47,78 +70,62 @@ func worker(dirPath string, silent bool, needFix bool) error {
 		return err
 	}
 
-	var mutex sync.Mutex
-	ctx := context.TODO()
-	errGrp, _ := errgroup.WithContext(ctx)
-	start := time.Now()
-	tableWriter := NewTableWriter()
-	if !silent {
-		tableWriter.AddHeader()
+	var whiteExtList []string
+	if len(exts) > 0 {
+		whiteExtList = strings.Split(exts, ",")
 	}
 
-	var procFileCnt int
-	var fixedFileCnt int
-	err = filepath.WalkDir(dirPathAbs, func(filePath string, dirEntry fs.DirEntry, err error) error {
+	var eg errgroup.Group
+	eg.SetLimit(FILE_PROCESSING_LIMIT)
+	if err := filepath.WalkDir(dirPathAbs, func(filePath string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if dirEntry.IsDir() || filePath == "" {
 			return nil
 		}
-		errGrp.Go(func() error {
-			fileInfo, err := getFileInfo(dirPathAbs, filePath)
+
+		eg.Go(func() error {
+			fileInfo, err := getFileInfo(filePath)
 			if err != nil {
 				return err
 			}
-			if fileInfo.err == "" {
-				fileInfo.fixRequired = fileInfo.mime != "" && fileInfo.oExt != fileInfo.realExt
-				if needFix {
-					err := fixFileExt(&fileInfo)
-					if err != nil {
-						return err
-					}
-					if fileInfo.fixed {
-						fixedFileCnt++
-					}
+			fileInfo.fileTrimPath = strings.Replace(filePath, dirPathAbs, ".", 1)
+
+			if fileInfo.mime != "" && fileInfo.origExt != fileInfo.realExt {
+				if len(whiteExtList) == 0 || slices.ContainsFunc(whiteExtList, func(s string) bool { return "."+s == fileInfo.realExt }) {
+					fileInfo.status = FS_FIX_REQUIRED
+				} else {
+					fileInfo.status = FS_IGNORED
 				}
 			}
-			if !silent {
-				mutex.Lock()
-				defer mutex.Unlock()
-				tableWriter.AddRow(&fileInfo)
+			if fileInfo.status == FS_FIX_REQUIRED && workMode == WM_FIX {
+				if err := fixFileExt(&fileInfo); err != nil {
+					return err
+				}
 			}
-			procFileCnt++
+
+			tb.PrintTableRow(&fileInfo)
 			return nil
 		})
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 
-	err = errGrp.Wait()
-	if err != nil {
+	if err = eg.Wait(); err != nil {
 		return err
 	}
 
-	if !silent {
-		err = tableWriter.Finish()
-		if err != nil {
-			return err
-		}
-	}
+	tb.PrintResult()
 
-	duration := time.Since(start)
-	fmt.Printf("\n%d file(s) processed and %d file(s) fixed in %v\n", procFileCnt, fixedFileCnt, duration)
 	return nil
 }
 
-func getFileInfo(dirPath string, filePath string) (_FileInfo, error) {
-	result := _FileInfo{
-		filePath:    filePath,
-		filePathCut: strings.Replace(filePath, dirPath, "<dir>", 1),
-		mime:        "unknown",
-		oExt:        filepath.Ext(filePath),
+func getFileInfo(filePath string) (_FileInfo, error) {
+	fileInfo := _FileInfo{
+		filePath: filePath,
+		origExt:  filepath.Ext(filePath),
 	}
 
 	file, err := os.Open(filePath)
@@ -127,12 +134,13 @@ func getFileInfo(dirPath string, filePath string) (_FileInfo, error) {
 	}
 	defer file.Close()
 
-	head := make([]byte, 512)
+	head := make([]byte, 261)
 	_, err = file.Read(head)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
-			result.err = "File is empty"
-			return result, nil
+			fileInfo.status = FS_ERROR
+			fileInfo.notes = "File is empty"
+			return fileInfo, nil
 		}
 		/* TODO: process more expected errors:
 		- Access is denied.
@@ -147,29 +155,31 @@ func getFileInfo(dirPath string, filePath string) (_FileInfo, error) {
 	}
 
 	if fileType.MIME.Value != "" {
-		result.mime = fileType.MIME.Value
-		result.realExt = "." + fileType.Extension
+		fileInfo.mime = fileType.MIME.Value
+		fileInfo.realExt = "." + fileType.Extension
 	}
 
-	return result, nil
+	return fileInfo, nil
 }
 
 func fixFileExt(fileInfo *_FileInfo) error {
-	if fileInfo.fixRequired {
-		oldPath := fileInfo.filePath
-		newPath := strings.TrimSuffix(fileInfo.filePath, fileInfo.oExt) + fileInfo.realExt
-		fileStat, err := os.Stat(newPath)
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-		if fileStat != nil {
-			fileInfo.err = "File with the same name is already exists"
-			return nil
-		}
-		if err = os.Rename(oldPath, newPath); err != nil {
-			return err
-		}
-		fileInfo.fixed = true
+	oldPath := fileInfo.filePath
+	newPath := strings.TrimSuffix(fileInfo.filePath, fileInfo.origExt) + fileInfo.realExt
+
+	fileStat, err := os.Stat(newPath)
+	if err != nil && !os.IsNotExist(err) {
+		return err
 	}
+	if fileStat != nil {
+		fileInfo.status = FS_ERROR
+		fileInfo.notes = "File with the same name already exists"
+		return nil
+	}
+	if err = os.Rename(oldPath, newPath); err != nil {
+		return err
+	}
+	fileInfo.status = FS_FIXED
+	fileInfo.notes = ""
+
 	return nil
 }

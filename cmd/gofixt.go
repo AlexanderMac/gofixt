@@ -4,11 +4,12 @@ import (
 	"flag"
 	"log"
 	"os"
+	"slices"
 
 	"github.com/alexandermac/gofixt/internal"
 )
 
-const VERSION = "0.1.0"
+const VERSION = "0.2.0"
 
 func main() {
 	log.SetFlags(0)
@@ -16,7 +17,8 @@ func main() {
 	flags := flag.NewFlagSet("gofixt", flag.ExitOnError)
 	flags.Usage = usage
 	dir := flags.String("dir", "", "Scanning directory")
-	silent := flags.Bool("silent", false, "Don't print report")
+	exts := flags.String("exts", "", "Extension list")
+	printMode := flags.String("print", "important", "Print mode")
 
 	if err := flags.Parse(os.Args[1:]); err != nil {
 		log.Fatalf("Unable to parse args: %v", err)
@@ -37,13 +39,13 @@ func main() {
 		log.Printf("v%s\n", VERSION)
 		os.Exit(0)
 	case "scan":
-		validateFlags(*dir)
-		if err := internal.Scan(*dir, *silent); err != nil {
+		validateFlags(*dir, *printMode)
+		if err := internal.Scan(*dir, *exts, internal.PrintMode(*printMode)); err != nil {
 			log.Fatal(err)
 		}
 	case "fix":
-		validateFlags(*dir)
-		if err := internal.Fix(*dir, *silent); err != nil {
+		validateFlags(*dir, *printMode)
+		if err := internal.Fix(*dir, *exts, internal.PrintMode(*printMode)); err != nil {
 			log.Fatal(err)
 		}
 	default:
@@ -57,16 +59,17 @@ func usage() {
 
 Flags:
   --dir    Scanning directory (absolute or relative path)
-  --silent Don't print report
+  --exts   Comma separated list of file extensions, files with other extensions will be ignored, default: empty
+  --print  Print mode: all,important,report,none, default: important
 
 Commands:
-  scan     Scans files in the provided directory recursively. Prints files info in a table format
-  fix      Scans files in the provided directory recursively and fixes their extensions (when needed). Prints files info in a table format
-  help     Shows this help
-  version  Prints app version
+  scan     Scan files in the provided directory recursively. Print report in a table format
+  fix      Scan files in the provided directory recursively and fixes their extensions (when needed). Print report in a table format
+  help     Show this help
+  version  Print app version and exit
 
 Examples:
-  gofixt --dir=~/images scan
+  gofixt --dir=~/images scan --exts=jpeg,png,webp
   gofixt --dir=~/files fix
 `
 
@@ -74,8 +77,17 @@ Examples:
 	flag.PrintDefaults()
 }
 
-func validateFlags(dir string) {
+func validateFlags(dir string, printMode string) {
 	if dir == "" {
 		log.Fatal("'dir' flag must be provided")
+	}
+	allowedPrintMode := []string{
+		string(internal.PM_ALL),
+		string(internal.PM_IMPORTANT),
+		string(internal.PM_REPORT),
+		string(internal.PM_NONE),
+	}
+	if !slices.Contains(allowedPrintMode, printMode) {
+		log.Fatalf("'print' has invalid value, allowed are: %v", allowedPrintMode)
 	}
 }

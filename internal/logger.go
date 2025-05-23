@@ -2,37 +2,122 @@ package internal
 
 import (
 	"fmt"
-	"os"
-	"text/tabwriter"
+	"slices"
+	"strings"
+	"time"
 )
 
-type TableWriter struct {
-	writer *tabwriter.Writer
+type Logger struct {
+	printMode      PrintMode
+	start          time.Time
+	totalCnt       int
+	ignoredCnt     int
+	fixRequiredCnt int
+	fixedCnt       int
+	errorCnt       int
 }
 
-func NewTableWriter() *TableWriter {
-	return &TableWriter{
-		writer: tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0),
+func NewLogger(printMode PrintMode) *Logger {
+	return &Logger{printMode, time.Now(), 0, 0, 0, 0, 0}
+}
+
+func (log *Logger) PrintIntro(dirPath string, exts string, workMode WorkMode) {
+	if !log.shouldPrint(PM_ALL, PM_IMPORTANT, PM_REPORT) {
+		return
 	}
+	msg := fmt.Sprintf("Running gofixt in %s mode on %s...\n", workMode, dirPath)
+	msg += fmt.Sprintf("- extension white list: %s\n", exts)
+	msg += fmt.Sprintf("- print mode: %s\n", log.printMode)
+	fmt.Printf("%s\n", msg)
 }
 
-func (tw *TableWriter) AddHeader() {
-	fmt.Fprintln(tw.writer, "| File\t| Mime\t| Orig ext.\t| Real ext.\t| Notes\t|")
-	fmt.Fprintln(tw.writer, "| ----\t| ----\t| ---------\t| ---------\t| -----\t|")
+func (log *Logger) PrintTableHeader() {
+	if !log.shouldPrint(PM_ALL, PM_IMPORTANT) {
+		return
+	}
+
+	fmt.Printf("| File%50s | Mime%12s | Orig ext. | Real ext. | Notes%10s |\n", "", "", "")
+	fmt.Printf("| %s |\n", strings.Repeat("-", 115))
 }
 
-func (tw *TableWriter) AddRow(fi *_FileInfo) {
+func (log *Logger) PrintTableRow(fi *_FileInfo) {
+	log.totalCnt++
 	var notes string
-	if fi.err != "" {
-		notes = fi.err
-	} else if fi.fixed {
-		notes = "Fixed"
-	} else if fi.fixRequired {
+	switch fi.status {
+	case FS_FIX_REQUIRED:
+		log.fixRequiredCnt++
 		notes = "Fix required"
+	case FS_IGNORED:
+		log.ignoredCnt++
+		notes = "Ignored"
+	case FS_FIXED:
+		log.fixedCnt++
+		notes = "Fixed"
+	case FS_ERROR:
+		log.errorCnt++
+		notes = fi.notes
 	}
-	fmt.Fprintf(tw.writer, "| %s\t| %s\t| %s\t| %s\t| %s\t|\n", fi.filePathCut, fi.mime, fi.oExt, fi.realExt, notes)
+
+	shouldPrint := false
+	switch fi.status {
+	case FS_NONE:
+		shouldPrint = log.shouldPrint(PM_ALL)
+	case FS_FIX_REQUIRED, FS_IGNORED, FS_FIXED, FS_ERROR:
+		shouldPrint = log.shouldPrint(PM_ALL, PM_IMPORTANT)
+	}
+	if !shouldPrint {
+		return
+	}
+
+	fmt.Printf(
+		"| %-54s | %-16s | %-9s | %-9s | %-15s |\n",
+		trimString(fi.fileTrimPath, 54, true),
+		trimString(fi.mime, 16, true),
+		trimString(fi.origExt, 9, false),
+		trimString(fi.realExt, 9, false),
+		trimString(notes, 15, false),
+	)
 }
 
-func (tw *TableWriter) Finish() error {
-	return tw.writer.Flush()
+func (log *Logger) PrintResult() {
+	if !log.shouldPrint(PM_ALL, PM_IMPORTANT, PM_REPORT) {
+		return
+	}
+	if log.shouldPrint(PM_ALL, PM_IMPORTANT) {
+		fmt.Println("")
+	}
+
+	duration := time.Since(log.start)
+	fmt.Printf(
+		`Process has been completed in %v.
+- %d file(s) processed
+- %d file(s) ignored
+- %d file(s) require fix
+- %d file(s) fixed
+- %d error(s)
+`,
+		duration,
+		log.totalCnt,
+		log.ignoredCnt,
+		log.fixRequiredCnt,
+		log.fixedCnt,
+		log.errorCnt,
+	)
+}
+
+func (log *Logger) shouldPrint(allowedModes ...PrintMode) bool {
+	return slices.Contains(allowedModes, log.printMode)
+}
+
+func trimString(str string, n int, trimLet bool) string {
+	if n < 0 || n >= len(str) {
+		return str
+	}
+
+	n = n - 3
+	if trimLet {
+		return "..." + str[len(str)-n:]
+	} else {
+		return str[:n] + "..."
+	}
 }
