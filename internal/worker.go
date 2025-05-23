@@ -21,20 +21,24 @@ type FileStatus int
 const (
 	WM_SCAN WorkMode = "scan"
 	WM_FIX  WorkMode = "fix"
+)
 
+const (
 	PM_NONE      PrintMode = "none"
 	PM_ALL       PrintMode = "all"
 	PM_IMPORTANT PrintMode = "important"
 	PM_REPORT    PrintMode = "report"
+)
 
+const (
 	FS_NONE         FileStatus = iota
 	FS_FIX_REQUIRED FileStatus = iota
 	FS_IGNORED      FileStatus = iota
 	FS_FIXED        FileStatus = iota
 	FS_ERROR        FileStatus = iota
-
-	FILE_PROCESSING_LIMIT = 100
 )
+
+const FILE_PROCESSING_LIMIT = 100
 
 type _FileInfo struct {
 	filePath     string
