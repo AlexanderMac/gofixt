@@ -1,4 +1,4 @@
-package gofixt
+package internal
 
 import (
 	"fmt"

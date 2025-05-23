@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/AlexanderMac/gofixt"
+	"github.com/alexandermac/gofixt/internal"
 )
 
 const VERSION = "0.1.0"
@@ -38,12 +38,12 @@ func main() {
 		os.Exit(0)
 	case "scan":
 		validateFlags(*dir)
-		if err := gofixt.Scan(*dir, *silent); err != nil {
+		if err := internal.Scan(*dir, *silent); err != nil {
 			log.Fatal(err)
 		}
 	case "fix":
 		validateFlags(*dir)
-		if err := gofixt.Fix(*dir, *silent); err != nil {
+		if err := internal.Fix(*dir, *silent); err != nil {
 			log.Fatal(err)
 		}
 	default:
