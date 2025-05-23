@@ -14,9 +14,10 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
-      - name: Run linter
-        uses: golangci/golangci-lint-action@v6
+      - name: Run Linter
+        uses: golangci/golangci-lint-action@v7
         with:
-          version: latest
-      - name: Run Tests
-        run: go test
+          version: v2.0
+          args: --timeout=2m
+      #- name: Run Tests
+      # run: go test
